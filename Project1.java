@@ -1,0 +1,232 @@
+/*
+ * PROJECT I: Project1.java
+ *
+ * As in project 0, this file - and the others you downloaded - form a
+ * template which should be modified to be fully functional.
+ *
+ * This file is the *last* file you should implement, as it depends on both
+ * Point and Circle. Thus your tasks are to:
+ *
+ * 1) Make sure you have carefully read the project formulation. It contains
+ *    the descriptions of all of the functions and variables below.
+ * 2) Write the class Point.
+ * 3) Write the class Circle
+ * 4) Write this class, Project1. The results() method will perform the tasks
+ *    laid out in the project formulation.
+ *
+ * Author: Timothy Yap
+ * Warwick ID: 2161367
+ * 
+ */
+
+import java.util.*;
+import java.io.*;
+
+public class Project1 {
+    // -----------------------------------------------------------------------
+    // Do not modify the names or types of the instance variables below! This 
+    // is where you will store the results generated in the Results() function.
+    // -----------------------------------------------------------------------
+    public int      circleCounter; // Number of non-singular circles in the file.
+    public double[] aabb;          // The bounding rectangle for the first and 
+                                   // last circles
+    public double   Smax;          // Area of the largest circle (by area).
+    public double   Smin;          // Area of the smallest circle (by area).
+    public double   areaAverage;   // Average area of the circles.
+    public double   areaSD;        // Standard deviation of area of the circles.
+    public double   areaMedian;    // Median of the area.
+    public int      stamp = 220209;
+    // -----------------------------------------------------------------------
+    // You should implement - but *not* change the types, names or parameters of
+    // the variables and functions below.
+    // -----------------------------------------------------------------------
+
+    /**
+     * Default constructor for Project1. You should leave it empty.
+     */
+    public Project1() {
+        // This method is complete.
+    }
+
+    /**
+     * Results function. It should open the file called fileName (using
+     * Scanner), and from it generate the statistics outlined in the project
+     * formulation. These are then placed in the instance variables above.
+     *
+     * @param fileName  The name of the file containing the circle data.
+     */
+    public void results(String fileName){
+        // You need to fill in this method.
+        // Set circle counter to 0 and create variables for the circle
+        circleCounter = 0;
+        double x, y, rad;
+        
+        // Initialise the max and minimum to something sensible
+        Smin = Double.MAX_VALUE;
+        Smax = Double.MIN_VALUE;
+        
+        // Create array list of valid circles and another with their areas
+        ArrayList<Circle> circleList = new ArrayList<Circle>();
+        ArrayList<Double> areaList = new ArrayList<Double>();
+        
+        try (
+            Scanner scanner = new Scanner(new BufferedReader(new FileReader("student.data")))
+        ) {
+    
+            while(scanner.hasNext()) {
+                //Read the three values on each line of the file and create Circle variable called circle
+                x = scanner.nextDouble();
+                y = scanner.nextDouble();
+                rad = scanner.nextDouble();
+                Circle circle;
+
+                // Check if the circle is not singular
+                if (rad > Point.GEOMTOL){
+                    circle = new Circle(x, y, rad);
+                    // 1. To count the number of circles in the set
+                    circleCounter ++;
+                    // Adds valid circle to circleList and its area to areaList
+                    circleList.add(circle);
+                    areaList.add(circle.area());
+
+                    if (circle.area() > Smax){
+                        Smax = circle.area();
+                    }
+
+                    if (circle.area() < Smin){
+                        Smin = circle.area();
+                    }
+                }
+          }
+
+            // Creates an array of size of number of valid circles
+            Circle[] circleArray = new Circle[circleList.size()];
+            // Turns list into array with correct size
+            Circle[] circles = circleList.toArray(circleArray);
+            // Calculates the mean and sd of the circles array
+            areaAverage = averageCircleArea(circles);
+            areaSD = areaStandardDeviation(circles);
+
+        // Finding median
+            // Turns list into array; similar to above, and then sort it
+            Double[] areaArray = new Double[areaList.size()]; 
+            Double[] areas = areaList.toArray(areaArray); 
+            Arrays.sort(areas);
+            // Find median if even or odd
+            if (areas.length % 2 == 0){
+                areaMedian = (areas[(areas.length - 1) / 2] + areas[(areas.length / 2)]) / 2;
+            }
+            if (areas.length % 2 == 1){
+                areaMedian = (areas[(areas.length - 1) / 2]);
+            }
+        
+        // Find aabb for bounding rectangle
+        Circle[] aabbCircles = new Circle[]{circles[9], circles[19]}; 
+        aabb = calculateAABB(aabbCircles);
+        
+        } catch(Exception e) {
+          System.err.println("An error has occured. See below for details");
+          e.printStackTrace();
+        } 
+    }
+
+    /**
+     * A function to calculate the avarage area of circles in the array provided. 
+     * This array may contain 0 or more circles.
+     *
+     * @param circles  An array of Circles
+     */
+    public double averageCircleArea(Circle[] circles) {
+        // You need to fill in this method  
+        // To find average area, first sum all areas and divide by number of circles
+        double totalArea = 0;
+        for (int i = 0; i < circles.length; i++){
+            totalArea += circles[i].area();
+        }
+        areaAverage = totalArea / circles.length;
+        return areaAverage;
+    }
+    
+    /**
+     * A function to calculate the standard deviation of areas in the circles in the array provided. 
+     * This array may contain 0 or more circles.
+     * 
+     * @param circles  An array of Circles
+     */
+    public double areaStandardDeviation(Circle[] circles) {
+        // You need to complete this method.
+        // First find sum of each circle's area squared
+        double areaSquaredSum = 0;
+        for (int i = 0; i < circles.length; i++){
+            areaSquaredSum += Math.pow(circles[i].area(), 2);
+        }
+        // Calculate using the value above and the formula from the Project1 pdf
+        areaSD = Math.sqrt(((areaSquaredSum / circles.length - Math.pow(areaAverage, 2))));
+        return areaSD;
+    }
+    
+    /**
+     * Returns 4 values in an array [X1,Y1,X2,Y2] that define the rectangle
+     * that surrounds the array of circles given.
+     * This array may contain 0 or more circles.
+     *
+     * @param circles  An array of Circles
+     * @return An array of doubles [X1,Y1,X2,Y2] that define the bounding rectangle with
+     *         the origin (bottom left) at [X1,Y1] and opposite corner (top right)
+     *         at [X2,Y2]
+     */
+    public double[] calculateAABB(Circle[] circles)
+    {
+        // You need to fill in this method.
+        double x1, x2, y1, y2, xMin, xMax, yMin, yMax;
+        // Set xMin, xMax, yMin, yMax to be furthest bounds on the opposite ends
+        xMin = Double.MAX_VALUE;
+        xMax = Double.MIN_VALUE;
+        yMin = Double.MAX_VALUE;
+        yMax = Double.MIN_VALUE;
+
+        // Iterate through all possible circles to find what xMin, xMax, yMin, yMax should be
+        for(int i = 0; i < circles.length; i++){
+            // Find center of circle and get largest and smallest x and y values of circle.
+            x1 = circles[i].getCentre().getX() - circles[i].getRadius();
+            x2 = circles[i].getCentre().getX() + circles[i].getRadius();
+            y1 = circles[i].getCentre().getY() - circles[i].getRadius();
+            y2 = circles[i].getCentre().getY() + circles[i].getRadius();
+            // Replace xMin, xMax, yMin, yMax if new bound is found
+            if (x1 < xMin){
+                xMin = x1;
+            } if (x2 > xMax){
+                xMax = x2;
+            } if (y1 < yMin){
+                yMin = y1;
+            } if (y2 > yMax){
+                yMax = y2;
+            }
+        }       
+        // Now xMin, xMax, yMin, yMax bound all circles in array
+        return new double[]{xMin,yMin,xMax,yMax};
+    }
+
+  
+    // =======================================================
+    // Tester - tests methods defined in this class
+    // =======================================================
+
+    /**
+     * Your tester function should go here (see week 14 lecture notes if
+     * you're confused). It is not tested by BOSS, but you will receive extra
+     * credit if it is implemented in a sensible fashion.
+     */
+    public static void main(String args[]){
+        // You can use this method for testing.
+        Project1 p1 = new Project1();
+        p1.results("student.data");
+        System.out.println("The number of valid circles is " + p1.circleCounter);
+        System.out.println("The largest (Smax) is " + p1.Smax);
+        System.out.println("The smallest (Smin) is " + p1.Smin);
+        System.out.println("The average area of a circle is " + p1.areaAverage);
+        System.out.println("The standard deviation is " + p1.areaSD);
+        System.out.println("The median of the areas is " + p1.areaMedian);
+        System.out.println("The rectangle that bounds the 10th and 20th circles are " + String.format("%.9f, %.9f, %.9f, %.9f",p1.aabb[0],p1.aabb[1],p1.aabb[2],p1.aabb[3]));
+    }
+}
